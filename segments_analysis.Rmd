@@ -1,0 +1,573 @@
+---
+title: "The Supermarket’s Strategic Plan for the Chip Category"
+author: "Jose Alberto"
+date: "21/06/2021"
+output: github_document
+---
+
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+
+Load Packages:
+
+```{r}
+library(rmarkdown)
+library(htmltools)
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(stringr)
+library(openxlsx)
+library(lubridate)
+library(ggplot2)
+library(GGally)
+library(fpp)
+library(stats)
+library(fastcluster)
+library(stringdist)
+```
+
+Load datasets 
+
+```{r}
+customers_transaction_dataset <- read.csv2("datasets/QVI_transaction_data.csv",
+                                           sep =";",
+                                           na.strings = "")
+```
+
+
+```{r}
+customers_purchase_dataset <- read.csv("datasets/QVI_purchase_behaviour.csv",
+                                       sep = ",",
+                                       na.strings = "")
+```
+
+
+## Data exploration 
+```{r}
+customers_transaction_dataset %>% glimpse()
+```
+
+```{r}
+customers_purchase_dataset %>% glimpse()
+```
+
+```{r}
+dim(customers_transaction_dataset)
+```
+
+
+```{r}
+dim(customers_purchase_dataset)
+```
+
+Cheking missing values
+```{r}
+sapply(customers_transaction_dataset, function(x) sum(is.na(x)))
+```
+
+
+```{r}
+colSums(is.na(customers_purchase_dataset))
+```
+
+
+### Data cleaning is the process of preparing data for analysis 
+
+```{r}
+customers_transaction_dataset$ï..DATE <-  convertToDateTime(customers_transaction_dataset$ï..DATE, origin = "1900-01-01")
+```
+
+
+```{r}
+customers_transaction_dataset$ï..DATE <- as.Date(customers_transaction_dataset$ï..DATE, origin = "1900-01-01")
+```
+
+
+```{r}
+class(customers_transaction_dataset$ï..DATE)
+```
+
+
+```{r}
+Stringsextract <- function(string){
+  unlist(str_extract(string,regex("\\b[A-z ]*[[:punct:]]*[[:alpha:]]* [[:upper:]]*[[:lower:]]*[[:alpha:]]*")))
+}
+```
+
+
+
+```{r}
+customers_transaction_dataset["PRODUCT_NAME"] <- 
+  Stringsextract(customers_transaction_dataset$PROD_NAME)
+```
+
+
+
+```{r}
+unique(customers_transaction_dataset$PROD_NAME)
+```
+
+
+```{r}
+customers_transaction_dataset$PRODUCT_NAME <-  mapvalues(customers_transaction_dataset$PRODUCT_NAME, from = c(
+        "Natural Chip        Compny SeaSalt" ,  
+        "CCs Nacho Cheese    " ,                
+        "Smiths Crinkle Cut  Chips Chicken ",   
+        "Smiths Chip Thinly  S",               
+        "Kettle Tortilla ChpsHny&Jlpno Chili" , 
+        "Old El Paso Salsa   Dip Tomato Mild ", 
+        "Smiths Crinkle Chips Salt & Vinegar",
+        "Grain Waves         Sweet Chilli ",    
+       "Doritos Corn Chip Mexican Jalapeno ",  
+       "Grain Waves Sour    Cream&Chives ",   
+       "Kettle Sensations   Siracha Lime ",   
+       "Twisties Cheese     ",                
+       "WW Crinkle Cut      Chicken " ,        
+       "Thins Chips Light& ",                  
+       "CCs Original ",                       
+       "Burger Rings ",                       
+       "NCC Sour Cream & ",                    
+       "Doritos Corn Chip Southern Chicken ",  
+       "Cheezels Cheese Box ",                 
+       "Smiths Crinkle      Original ",        
+       "Infzns Crn Crnchers Tangy Gcamole ",   
+       "Kettle Sea Salt     And Vinegar ",     
+       "Smiths Chip Thinly  Cut Original ",    
+       "Kettle Original ",                    
+       "Red Rock Deli Thai  Chilli&Lime ",     
+       "Pringles Sthrn FriedChicken ",         
+       "Pringles Sweet&Spcy BBQ",              
+       "Red Rock Deli SR    Salsa & Mzzrlla",
+       "Thins Chips         Originl saltd ",   
+       "Red Rock Deli Sp    Salt & Truffle",   
+       "Smiths Thinly       Swt Chli",         
+       "Kettle Chilli ",                       
+       "Doritos Mexicana    ",
+       "Smiths Crinkle Cut  French OnionDip ",
+       "Natural ChipCo      Hony Soy Chckn",   
+       "Dorito Corn Chp     Supreme ",         
+       "Twisties Chicken",
+       "Smiths Thinly Cut   Roast Chicken ",   
+       "Smiths Crinkle Cut  Tomato Salsa ",
+       "Kettle Mozzarella   Basil & Pesto",
+       "Infuzions Thai SweetChili PotatoMix ",
+       "Kettle Sensations   Camembert & Fig",
+       "Smith Crinkle Cut   Mac N Cheese ",
+       "Kettle Honey Soy    Chicken ",
+       "Thins Chips Seasonedchicken ",
+       "Smiths Crinkle Cut  Salt & Vinegar",
+       "Infuzions BBQ Rib   Prawn Crackers ",
+       "GrnWves Plus Btroot & Chilli",
+       "Tyrrells Crisps     Lightly Salted ",
+       "Kettle Sweet Chilli And Sour Cream ",
+       "Doritos Salsa       Medium ",
+       "Kettle ",
+       "Pringles SourCream  Onion ",
+       "Doritos Corn Chips  Original ",
+       "Twisties Cheese     Burger ",
+       "Old El Paso Salsa   Dip Chnky Tom Ht",
+       "Cobs Popd Swt/Chlli ",
+       "Woolworths Mild     Salsa ",
+       "Natural Chip Co     Tmato Hrb&Spce ",
+       "Cobs Popd Sea Salt  Chips ",
+       "Smiths Crinkle Cut  Chips Chs",
+       "French Fries Potato Chips ",
+       "Old El Paso Salsa   Dip Tomato Med ",
+       "Doritos Corn Chips  Cheese Supreme ",
+       "Pringles Original   Crisps ",
+       "RRD Chilli& ",
+       "WW Original Corn    Chips ",
+       "Thins Potato Chips  Hot & Spicy",
+       "Cobs Popd Sour Crm  &Chives Chips",
+       "Smiths Crnkle Chip  Orgnl Big Bag ",
+       "Doritos Corn Chips  Nacho Cheese ",
+       "Kettle Sensations   BBQ&Maple ",
+       "WW D/Style Chip",
+       "Pringles Chicken    Salt Crips ",
+       "WW Original Stacked Chips ",
+       "Smiths Chip Thinly  CutSalt",
+       "Cheezels Cheese ",
+       "Tostitos Lightly    Salted ",
+       "Thins Chips Salt & ",
+       "Smiths Crinkle Cut  Chips Barbecue ",
+       "Cheetos Puffs ",
+       "RRD Sweet Chilli & ",
+       "WW Crinkle Cut      Original ",
+       "Tostitos Splash Of  Lime ",
+       "Woolworths Medium   Salsa ",
+       "Kettle Tortilla ChpsBtroot&Ricotta ",
+       "CCs Tasty Cheese    ",
+       "Woolworths Cheese   Rings ",
+       "Tostitos Smoked     Chipotle ",
+       "Pringles Barbeque   ",
+       "WW Supreme Cheese   Corn Chips ",
+       "Pringles Mystery    Flavour ",
+       "Tyrrells Crisps     Ched & Chives",
+       "Snbts Whlgrn Crisps Cheddr&Mstrd ",
+       "Cheetos Chs & Bacon",
+       "Pringles Slt Vingar ",
+       "Infuzions SourCream&Herbs Veg",
+       "Kettle Tortilla ChpsFeta&Garlic ",
+       "Infuzions Mango     Chutny Papadums ",
+       "RRD Steak & ",
+       "RRD Honey Soy       Chicken ",
+       "Sunbites Whlegrn    Crisps Frch/Onin ",
+       "RRD Salt & Vinegar",
+       "Doritos Cheese      Supreme ",
+       "Smiths Crinkle Cut  Snag&Sauce ",
+       "WW Sour Cream &OnionStacked Chips",
+       "RRD Lime & Pepper",
+       "Natural ChipCo Sea  Salt & Vinegr",
+       "Red Rock Deli Chikn&Garlic Aioli",
+       "RRD SR Slow Rst     Pork Belly ",
+       "RRD Pc Sea Salt     ",
+       "Smith Crinkle Cut   Bolognese ",
+       "Doritos Salsa Mild  "), 
+          to = c("Natural Chip SeaSalt",
+                 "CCs Nacho Cheese",
+                 "Smiths Crinckle Chicken Chips",
+                 "Smiths Thinly SourCream Onion",
+                 "Kettle Tortilla Chips Chilli Honey Jalapeno",
+                 "Old El Paso Tomato Salsa Dip Mild",
+                 "Smiths Crinkle Chips Salt Vinegar",
+                 "GrainWaves Sweet Chilli",
+                 "Doritos Corn Chip Mexican Jalapeno",
+                 "GrainWaves SourCream Chives",
+                 "Kettle Sensations Sriracha Lime",
+                 "Twisties Cheese",
+                 "WW Crinkle Cut Chicken ",
+                 "Thins Chips Light Tangy",
+                 "CCs Original",
+                 "Burger Rings",
+                 "NCC SourCream Garden Chives",
+                 "Doritos Corn Chip Southern Chicken",
+                 "Cheezels Cheese Box",
+                 "Smiths Crinkle Original",
+                 "Infuzions Corn Crunchers Tangy Guacamole",
+                 "Kettle SeaSalt Vinegar",
+                 "Smiths Thinly Cut Original Chips",
+                 "Kettle Original",
+                 "RRD Thai Chilli Lime",
+                 "Pringles Southern Fried Chicken",
+                 "Pringles Sweet Spicy BBQ",
+                 "RRD SR Salsa Mozzarella",
+                 "Thins Chips Original Salted",
+                 "RRD Sp Salt Truffle",
+                 "SMITHS THINLY SWEET CHILLI SOURCREAM",
+                 "Kettle Chilli",
+                 "Doritos Mexicana",
+                 "Smiths Crinkle French Onion Dip",
+                 "Natural Chip Honey Soy Chicken",
+                 "Doritos Corn Chips Cheese Supreme",
+                 "Twisties Chicken",
+                 "Smiths Thinly Roast Chicken",
+                 "Smiths Crinkle Tomato Salsa",
+                 "Kettle Mozzarella Basil Pesto",
+                 "infuzions Potato Mix Thai Sweet Chilli",
+                 "Kettle Sensations Camembert Fig",
+                 "Smith Crinkle Mac N Cheese",
+                 "Kettle Honey Soy Chicken ",
+                 "Thins Chips Seasoned Chicken",
+                 "Smiths Crinkle Salt Vinegar",
+                 "InfuZions Prawn Crackers BBQ Rib",
+                 "Grainwaves Beetroot Chilli Jam",
+                 "Tyrrells Crisps Lightly Salted",
+                 "Kettle Sweet Chilli SourCream",
+                 "Doritos Medium Salsa",
+                 "Kettle Sweet Potato SeaSalt",
+                 "Pringles SourCream  Onion",
+                  "Doritos Corn Chips Original",
+                 "Twisties Cheese Burger",
+                 "Old El Paso Chunky Hot Tomato Salsa",
+                 "Cobs Popd Sweet Chilli SourCream Chips",
+                 "Woolworths Mild Salsa",
+                 "Natural Chip Tomato Herbs Spices",
+                 "Cobs Popd SeaSalt Chips",
+                 "Smiths Crinkle Cheese Onion Chips",
+                 "French Fries Potato Chips",
+                 "Old el Paso Med Chunky Tomato Salsa",
+                 "Doritos Corn Chips Cheese Supreme",
+                 "Pringles Original Crisps",
+                 "RRD Chilli Coconut",
+                  "WW Original Corn Chips",
+                  "Thins Hot Spicy Potato Chips",
+                  "Cobs Popd Chips SourCREAM CHIVES",
+                 "Smiths Crnkle Chip  Orgnl Big Bag",
+                 "Dorito's Nacho Cheese Corn Chips",
+                  "Kettle Sensations BBQ Maple",
+                  "WW Deli Style Chips SeaSalt",
+                 "Pringles Chicken Salt Crips",
+                 "WW Original Stacked chips",
+                  "Smiths Thinly Chips Salt Vinegar",
+                  "Cheezels Cheese",
+                  "Tostitos Lightly Salted",
+                  "Thins Chips Salt Vinegar",
+                 "Smiths Chinckle Chips Barbecue",
+                 "Cheetos Puffs",
+                  "RRD Sweet Chilli SourCream",
+                 "WW Crincle Cut original",
+                 "Tostitos Splash of Lime",
+                 "Wooworths Medium Salsa",
+                 "Kettle Tortilla Chips Beetroot Ricotta",
+                 "CCs Tasty Cheese",
+                 "Woolworths Cheese Rings",
+                 "Tostitos Smoked Chipotle",
+                 "Pringles Barbeque",
+                 "WW Supreme Cheese Corn Chips",
+                 "Pringles Mystery Flavour",
+                 "Tyrells Crisps Cheddar Chives",
+                 "Snbts Whlgrn Crisps CheddrMstrd",
+                 "Cheetos Cheese Bacon Balls",
+                 "Pringles Salt Vingar",
+                 "Infuzions SourCream Herbs Veg",
+                 "Kettle Tortilla ChpsFeta Garlic",
+                 "Infuzions Papadams Mango Chutney",
+                 "RRD Steak Chimichurri",
+                 "RRD Honey Soy Chicken",
+                 "Sunbites Whlegrn Crisps Frch Onin",
+                 "RRD Salt Vinegar",
+                 "Doritos Cheese Supreme",
+                 "Smiths Crinkle Cut  SnagSauce ",
+                 "WW Sour Cream OnionStacked Chips",
+                 "RRD Lime Pepper",
+                 "Natural Chip SeaSalt Vinegr",
+                 "RRD Chikn Garlic Aioli",
+                 "RRD SR Slow Rst Pork Belly",
+                 "RRD Pc Sea Salt",
+                 "Smith Crinkle Bolognese",
+                 "Doritos Salsa Mild"))
+```
+
+
+
+```{r}
+table(customers_transaction_dataset$PRODUCT_NAME)
+```
+
+
+```{r}
+Numberextract <- function(string2){
+  unlist(regmatches(string2,gregexpr("[[:digit:]]+\\.*[[:digit:]]*",string2)))
+}
+```
+
+
+```{r}
+customers_transaction_dataset["Package_Weight"] <- 
+  Numberextract(customers_transaction_dataset$PROD_NAME)
+```
+
+
+```{r}
+customers_transaction_dataset$Package_Weight <- 
+  as.numeric(customers_transaction_dataset$Package_Weight)
+```
+
+
+
+Dropping Column
+```{r}
+customers_transaction_dataset2 <- customers_transaction_dataset %>% select(-c(PROD_NAME))
+```
+
+
+Finding duplicates rows 
+```{r}
+anyDuplicated(customers_transaction_dataset2)
+```
+
+
+```{r}
+anyDuplicated(customers_transaction_dataset2$TXN_ID)
+```
+
+
+Selecting specific rows
+```{r}
+customers_transaction_dataset2[rownames(customers_transaction_dataset2) 
+                               %in% c(40,41,42,43,124844,124845,124846),]
+```
+
+
+```{r}
+filter(customers_transaction_dataset2,PROD_QTY >= 200) %>%
+ select(STORE_NBR,LYLTY_CARD_NBR,TXN_ID,PROD_NBR,PROD_QTY) 
+```
+
+
+Deleting rows :
+```{r}
+customers_transaction_dataset2 <- customers_transaction_dataset2[
+                              (customers_transaction_dataset2$PROD_QTY!=200),]
+```
+
+
+Removing duplicate rows in data frame:
+```{r}
+customers_transaction_dataset2 <- distinct(customers_transaction_dataset2)
+```
+
+
+```{r}
+anyDuplicated(customers_purchase_dataset)
+```
+
+
+```{r}
+which(customers_purchase_dataset$LYLTY_CARD_NBR==226000)
+```
+
+```{r}
+customers_purchase_dataset[c(59693,59694,59695,59696,59697),]
+```
+
+Dropping row :
+```{r}
+customers_purchase_dataset <- customers_purchase_dataset %>%
+                                        slice(-c(59695))
+```
+
+
+
+Merge keep all rows from both data frames:
+ 
+```{r}
+customers_dataset_merge <- merge(x=customers_transaction_dataset2,
+                                y=customers_purchase_dataset,
+                                by="LYLTY_CARD_NBR",
+                                all=TRUE)
+```
+
+
+```{r}
+sum(is.na(customers_dataset_merge))
+```
+
+```{r}
+colnames(customers_dataset_merge)
+```
+
+
+```{r}
+customers_dataset_merge <- customers_dataset_merge %>% 
+                                relocate(
+                                ï..DATE,PREMIUM_CUSTOMER,LIFESTAGE,LYLTY_CARD_NBR,
+                                STORE_NBR,TXN_ID,PROD_NBR,PRODUCT_NAME,
+                                Package_Weight,PROD_QTY,TOT_SALES)
+```
+
+
+```{r}
+customers_dataset_merge$PREMIUM_CUSTOMER <- as.factor(customers_dataset_merge$PREMIUM_CUSTOMER)
+```
+
+
+```{r}
+ggplot(data = customers_dataset_merge)+ 
+  geom_bar(mapping = aes(x = PREMIUM_CUSTOMER, fill = PREMIUM_CUSTOMER))
+```
+
+
+
+```{r}
+sort(unique(customers_dataset_merge$TOT_SALES))
+```
+
+
+
+```{r}
+ggplot(customers_dataset_merge, 
+       aes(PROD_QTY, TOT_SALES, col=PREMIUM_CUSTOMER)) + 
+        geom_point() + 
+        ggtitle(" Product Quantity vs Total Sales")+
+        scale_x_discrete("PROD_QTY")+
+        scale_y_continuous("TOT_SALES")
+```
+
+
+```{r}
+ggplot(customers_dataset_merge, aes(PREMIUM_CUSTOMER, TOT_SALES, fill=PREMIUM_CUSTOMER)) + 
+  geom_boxplot()
+```
+
+
+
+Numeric and categorical variables in the same plot:
+```{r pressure, echo=FALSE}
+ggparcoord(data = customers_dataset_merge,
+           columns = c(4,10,9,11),
+           alphaLines = 0.2,
+           scale = "center",
+           groupColumn ="PREMIUM_CUSTOMER", 
+           showPoints = TRUE,
+           title = "Parallel Coordinate Plot for Customers Dataset")+
+           scale_color_brewer(palette = "Set1")
+```
+
+
+Selecting 500 samples and removing some columns :
+
+```{r}
+customers_dataset2_merge <- customers_dataset_merge[1:500,-c(1,2,3,8)]
+```
+
+
+
+#### Pre-processing for clustering
+
+```{r}
+ customers_dataset2_merge_scaled <- scale(customers_dataset2_merge)
+```
+
+
+```{r}
+d <-  dist(x=customers_dataset2_merge_scaled, method ="euclidean")
+```
+
+
+```{r}
+distance_matrix <- as.matrix(d)
+```
+
+
+```{r}
+hc <-  fastcluster::hclust(d, method = "complete")
+```
+
+
+
+```{r}
+plot(hc)
+```
+
+
+Cut into into 3 groups;
+```{r}
+sub_groups <- cutree(hc, k=3)
+```
+
+
+Number of members in  each cluster:
+```{r}
+table(sub_groups)
+```
+
+
+Drawing  the dendrogram with a border around the 3 clusters 
+
+```{r}
+plot(hc, cex = 0.9)
+rect.hclust(hc, k=3, border = 2:4)
+abline(h=3, col ="blue")
+```
+
+
