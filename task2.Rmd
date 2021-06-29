@@ -1,0 +1,171 @@
+---
+title: "Experimentation and uplift testing"
+author: "Jose Alberto"
+date: "29/06/2021"
+output: github_document
+---
+```{r}
+rm(list=ls(all=TRUE))
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+Load packages in r
+```{r}
+library(rmarkdown)
+library(htmltools)
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(kableExtra)
+library(stringr)
+library(openxlsx)
+library(lubridate)
+library(ggplot2)
+library(GGally)
+library(fpp)
+library(stats)
+library(fastcluster)
+```
+
+
+```{r}
+customers_chips_brand_dataset <- read.csv("datasets/QVI_data.csv")
+```
+
+The structure of the data
+```{r}
+str(customers_chips_brand_dataset)
+```
+
+
+```{r}
+customers_chips_brand_dataset$DATE <- as.Date(customers_chips_brand_dataset$DATE)
+```
+
+
+
+```{r}
+sum(is.na(customers_chips_brand_dataset))
+```
+
+```{r cars}
+summary(customers_chips_brand_dataset)
+```
+
+```{r}
+anyDuplicated(customers_chips_brand_dataset)
+```
+
+```{r}
+customers_chips_brand_dataset <- customers_chips_brand_dataset %>%
+  distinct()
+```
+
+
+```{r}
+count_brand <- head(customers_chips_brand_dataset %>% 
+  dplyr::count(BRAND),40)
+```
+
+
+```{r}
+knitr::kable(count_brand)
+```
+
+
+
+Building a contigency table based on life stage and product name
+```{r}
+table(customers_chips_brand_dataset$LIFESTAGE, customers_chips_brand_dataset$PROD_NAME)
+```
+
+```{r}
+chips_brand <- customers_chips_brand_dataset[
+  customers_chips_brand_dataset$BRAND =="KETTLE"|
+     customers_chips_brand_dataset$BRAND=="FRENCH"|
+    customers_chips_brand_dataset$BRAND=="SMITHS"|
+  customers_chips_brand_dataset$BRAND=="DORITOS"|
+    customers_chips_brand_dataset$BRAND=="PRINGLES",]
+```
+
+
+```{r}
+ggplot(data = chips_brand) + 
+  geom_bar( mapping = aes(x= BRAND, fill=BRAND))
+```
+
+
+Density plot 
+```{r}
+ggplot(chips_brand, aes(x=TOT_SALES, fill=BRAND, colour=BRAND ))+
+  geom_density(alpha = 0.5)
+```
+
+Density plot of the log10
+```{r}
+ggplot(chips_brand, aes(x=log10(TOT_SALES), fill=BRAND, colour=BRAND ))+
+  geom_density(alpha = 0.5)
+```
+
+
+
+```{r}
+customers_chips_brand_dataset2 <- customers_chips_brand_dataset %>% 
+  select(PROD_QTY,TOT_SALES,BRAND)
+```
+
+
+Changing row names
+```{r}
+row.names(customers_chips_brand_dataset2) <- paste(customers_chips_brand_dataset2$BRAND, 1:nrow(customers_chips_brand_dataset2))
+```
+
+
+Removing column
+```{r}
+customers_chips_brand_dataset2 <- select(customers_chips_brand_dataset2, -BRAND)
+```
+
+
+Selecting 1000 samples
+
+```{r}
+customers_chips_brand_dataset2 <- 
+  customers_chips_brand_dataset2 %>% slice(1:1000)
+```
+
+
+Standardization 
+According to various studies , clustering with standardized attributes results into better cluster output compared to non standardized values
+```{r}
+customers_chips_brand_dataset2_scaled <- scale(customers_chips_brand_dataset2)
+```
+
+
+
+Implements hierarchical clustering with Euclidean distance
+```{r}
+hc.complete <- fastcluster::hclust(dist(customers_chips_brand_dataset2_scaled),
+                                   method="complete")
+```
+
+
+
+```{r}
+
+plot(hc.complete, main = "Complete Linkage", xlab = " Chips Brand", cex = 1)
+```
+
+```{r}
+sub_groups <- cutree(hc.complete, 3)
+```
+
+
+```{r}
+table(sub_groups)
+```
