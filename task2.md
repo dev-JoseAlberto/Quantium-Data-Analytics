@@ -1,7 +1,7 @@
 Experimentation and uplift testing
 ================
 Jose Alberto
-29/06/2021
+03/11/2021
 
 ``` r
 rm(list=ls(all=TRUE))
@@ -21,7 +21,7 @@ library(openxlsx)
 library(lubridate)
 library(ggplot2)
 library(GGally)
-library(fpp)
+library(fpp2)
 library(stats)
 library(fastcluster)
 ```
@@ -1261,7 +1261,7 @@ chips_brand <- customers_chips_brand_dataset[
 
 ``` r
 ggplot(data = chips_brand) + 
-  geom_bar( mapping = aes(x= BRAND, fill=BRAND))
+  geom_bar( mapping = aes(x= BRAND), fill="steelblue")
 ```
 
 ![](task2_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
@@ -1269,7 +1269,7 @@ ggplot(data = chips_brand) +
 Density plot
 
 ``` r
-ggplot(chips_brand, aes(x=TOT_SALES, fill=BRAND, colour=BRAND ))+
+ggplot(chips_brand, aes(x=TOT_SALES, fill=BRAND))+
   geom_density(alpha = 0.5)
 ```
 
@@ -1278,34 +1278,34 @@ ggplot(chips_brand, aes(x=TOT_SALES, fill=BRAND, colour=BRAND ))+
 Density plot of the log10
 
 ``` r
-ggplot(chips_brand, aes(x=log10(TOT_SALES), fill=BRAND, colour=BRAND ))+
+ggplot(chips_brand, aes(x=log10(TOT_SALES), fill=BRAND))+
   geom_density(alpha = 0.5)
 ```
 
 ![](task2_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
-customers_chips_brand_dataset2 <- customers_chips_brand_dataset %>% 
+customers_chips_brand_dataset02 <- customers_chips_brand_dataset %>% 
   select(PROD_QTY,TOT_SALES,BRAND)
 ```
 
 Changing row names
 
 ``` r
-row.names(customers_chips_brand_dataset2) <- paste(customers_chips_brand_dataset2$BRAND, 1:nrow(customers_chips_brand_dataset2))
+row.names(customers_chips_brand_dataset02) <- paste(customers_chips_brand_dataset02$BRAND, 1:nrow(customers_chips_brand_dataset02))
 ```
 
 Removing column
 
 ``` r
-customers_chips_brand_dataset2 <- select(customers_chips_brand_dataset2, -BRAND)
+customers_chips_brand_dataset02 <- select(customers_chips_brand_dataset02, -BRAND)
 ```
 
 Selecting 1000 samples
 
 ``` r
-customers_chips_brand_dataset2 <- 
-  customers_chips_brand_dataset2 %>% slice(1:1000)
+customers_chips_brand_dataset02 <- 
+  customers_chips_brand_dataset02 %>% slice(1:1000)
 ```
 
 Standardization According to various studies , clustering with
@@ -1313,13 +1313,13 @@ standardized attributes results into better cluster output compared to
 non standardized values
 
 ``` r
-customers_chips_brand_dataset2_scaled <- scale(customers_chips_brand_dataset2)
+customers_chips_brand_dataset02_scaled <- scale(customers_chips_brand_dataset02)
 ```
 
 Implements hierarchical clustering with Euclidean distance
 
 ``` r
-hc.complete <- fastcluster::hclust(dist(customers_chips_brand_dataset2_scaled),
+hc.complete <- fastcluster::hclust(dist(customers_chips_brand_dataset02_scaled),
                                    method="complete")
 ```
 
