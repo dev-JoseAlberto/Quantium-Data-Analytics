@@ -1,7 +1,7 @@
 The Supermarket’s Strategic Plan for the Chip Category
 ================
 Jose Alberto
-21/06/2021
+03/11/2021
 
 ``` r
 rm(list=ls(all=TRUE))
@@ -20,7 +20,7 @@ library(openxlsx)
 library(lubridate)
 library(ggplot2)
 library(GGally)
-library(fpp)
+library(fpp2)
 library(stats)
 library(fastcluster)
 library(stringdist)
@@ -58,14 +58,13 @@ customers_transaction_dataset %>% glimpse()
     ## $ TOT_SALES      <dbl> 6.0, 6.3, 2.9, 15.0, 13.8, 5.1, 5.7, 3.6, 3.9, 7.2, 5.7~
 
 ``` r
-customers_purchase_dataset %>% glimpse()
+str(customers_purchase_dataset)
 ```
 
-    ## Rows: 72,637
-    ## Columns: 3
-    ## $ LYLTY_CARD_NBR   <int> 1000, 1002, 1003, 1004, 1005, 1007, 1009, 1010, 1011,~
-    ## $ LIFESTAGE        <chr> "YOUNG SINGLES/COUPLES", "YOUNG SINGLES/COUPLES", "YO~
-    ## $ PREMIUM_CUSTOMER <chr> "Premium", "Mainstream", "Budget", "Mainstream", "Mai~
+    ## 'data.frame':    72637 obs. of  3 variables:
+    ##  $ LYLTY_CARD_NBR  : int  1000 1002 1003 1004 1005 1007 1009 1010 1011 1012 ...
+    ##  $ LIFESTAGE       : chr  "YOUNG SINGLES/COUPLES" "YOUNG SINGLES/COUPLES" "YOUNG FAMILIES" "OLDER SINGLES/COUPLES" ...
+    ##  $ PREMIUM_CUSTOMER: chr  "Premium" "Mainstream" "Budget" "Mainstream" ...
 
 ``` r
 dim(customers_transaction_dataset)
@@ -79,7 +78,7 @@ dim(customers_purchase_dataset)
 
     ## [1] 72637     3
 
-Cheking missing values
+Checking missing values
 
 ``` r
 sapply(customers_transaction_dataset, function(x) sum(is.na(x)))
@@ -724,19 +723,19 @@ customers_transaction_dataset$Package_Weight <-
 Dropping Column
 
 ``` r
-customers_transaction_dataset2 <- customers_transaction_dataset %>% select(-c(PROD_NAME))
+customers_transaction_dataset02 <- customers_transaction_dataset %>% select(-c(PROD_NAME))
 ```
 
 Finding duplicates rows
 
 ``` r
-anyDuplicated(customers_transaction_dataset2)
+anyDuplicated(customers_transaction_dataset02)
 ```
 
     ## [1] 124846
 
 ``` r
-anyDuplicated(customers_transaction_dataset2$TXN_ID)
+anyDuplicated(customers_transaction_dataset02$TXN_ID)
 ```
 
     ## [1] 43
@@ -744,7 +743,7 @@ anyDuplicated(customers_transaction_dataset2$TXN_ID)
 Selecting specific rows
 
 ``` r
-customers_transaction_dataset2[rownames(customers_transaction_dataset2) 
+customers_transaction_dataset02[rownames(customers_transaction_dataset02) 
                                %in% c(40,41,42,43,124844,124845,124846),]
 ```
 
@@ -766,7 +765,7 @@ customers_transaction_dataset2[rownames(customers_transaction_dataset2)
     ## 124846       Smiths Thinly Roast Chicken            175
 
 ``` r
-filter(customers_transaction_dataset2,PROD_QTY >= 200) %>%
+filter(customers_transaction_dataset02,PROD_QTY >= 200) %>%
  select(STORE_NBR,LYLTY_CARD_NBR,TXN_ID,PROD_NBR,PROD_QTY) 
 ```
 
@@ -777,14 +776,14 @@ filter(customers_transaction_dataset2,PROD_QTY >= 200) %>%
 Deleting rows :
 
 ``` r
-customers_transaction_dataset2 <- customers_transaction_dataset2[
-                              (customers_transaction_dataset2$PROD_QTY!=200),]
+customers_transaction_dataset02 <- customers_transaction_dataset02[
+                              (customers_transaction_dataset02$PROD_QTY!=200),]
 ```
 
 Removing duplicate rows in data frame:
 
 ``` r
-customers_transaction_dataset2 <- distinct(customers_transaction_dataset2)
+customers_transaction_dataset02 <- distinct(customers_transaction_dataset02)
 ```
 
 ``` r
@@ -820,7 +819,7 @@ customers_purchase_dataset <- customers_purchase_dataset %>%
 Merge keep all rows from both data frames:
 
 ``` r
-customers_dataset_merge <- merge(x=customers_transaction_dataset2,
+customers_dataset_merge <- merge(x=customers_transaction_dataset02,
                                 y=customers_purchase_dataset,
                                 by="LYLTY_CARD_NBR",
                                 all=TRUE)
@@ -853,8 +852,10 @@ customers_dataset_merge$PREMIUM_CUSTOMER <- as.factor(customers_dataset_merge$PR
 ```
 
 ``` r
-ggplot(data = customers_dataset_merge)+ 
-  geom_bar(mapping = aes(x = PREMIUM_CUSTOMER, fill = PREMIUM_CUSTOMER))
+ggplot(data = customers_dataset_merge)+
+  geom_bar(mapping = aes(x=LIFESTAGE, fill=PREMIUM_CUSTOMER)) +
+  theme(legend.position = 'top')+
+  coord_flip()
 ```
 
 ![](segments_analysis_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
@@ -876,8 +877,9 @@ sort(unique(customers_dataset_merge$TOT_SALES))
 
 ``` r
 ggplot(customers_dataset_merge, 
-       aes(PROD_QTY, TOT_SALES, col=PREMIUM_CUSTOMER)) + 
-        geom_point() + 
+       aes(PROD_QTY, TOT_SALES)) + 
+        geom_point()+
+        geom_quantile() + 
         ggtitle(" Product Quantity vs Total Sales")+
         scale_x_discrete("PROD_QTY")+
         scale_y_continuous("TOT_SALES")
@@ -886,14 +888,12 @@ ggplot(customers_dataset_merge,
 ![](segments_analysis_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
 
 ``` r
-ggplot(customers_dataset_merge, aes(PREMIUM_CUSTOMER, TOT_SALES, fill=PREMIUM_CUSTOMER)) + 
-  geom_boxplot()
+ggplot(customers_dataset_merge, aes(PREMIUM_CUSTOMER,
+                                    TOT_SALES)) + 
+                                    geom_boxplot()
 ```
 
 ![](segments_analysis_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
-
-Numeric and categorical variables in the same plot:
-![](segments_analysis_files/figure-gfm/pressure-1.png)<!-- -->
 
 Selecting 500 samples and removing some columns :
 

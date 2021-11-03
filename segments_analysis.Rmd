@@ -1,7 +1,7 @@
 ---
 title: "The Supermarket’s Strategic Plan for the Chip Category"
 author: "Jose Alberto"
-date: "21/06/2021"
+date: "03/11/2021"
 output: github_document
 ---
 
@@ -29,7 +29,7 @@ library(openxlsx)
 library(lubridate)
 library(ggplot2)
 library(GGally)
-library(fpp)
+library(fpp2)
 library(stats)
 library(fastcluster)
 library(stringdist)
@@ -57,7 +57,7 @@ customers_transaction_dataset %>% glimpse()
 ```
 
 ```{r}
-customers_purchase_dataset %>% glimpse()
+str(customers_purchase_dataset)
 ```
 
 ```{r}
@@ -69,7 +69,7 @@ dim(customers_transaction_dataset)
 dim(customers_purchase_dataset)
 ```
 
-Cheking missing values
+Checking missing values
 ```{r}
 sapply(customers_transaction_dataset, function(x) sum(is.na(x)))
 ```
@@ -376,44 +376,44 @@ customers_transaction_dataset$Package_Weight <-
 
 Dropping Column
 ```{r}
-customers_transaction_dataset2 <- customers_transaction_dataset %>% select(-c(PROD_NAME))
+customers_transaction_dataset02 <- customers_transaction_dataset %>% select(-c(PROD_NAME))
 ```
 
 
 Finding duplicates rows 
 ```{r}
-anyDuplicated(customers_transaction_dataset2)
+anyDuplicated(customers_transaction_dataset02)
 ```
 
 
 ```{r}
-anyDuplicated(customers_transaction_dataset2$TXN_ID)
+anyDuplicated(customers_transaction_dataset02$TXN_ID)
 ```
 
 
 Selecting specific rows
 ```{r}
-customers_transaction_dataset2[rownames(customers_transaction_dataset2) 
+customers_transaction_dataset02[rownames(customers_transaction_dataset02) 
                                %in% c(40,41,42,43,124844,124845,124846),]
 ```
 
 
 ```{r}
-filter(customers_transaction_dataset2,PROD_QTY >= 200) %>%
+filter(customers_transaction_dataset02,PROD_QTY >= 200) %>%
  select(STORE_NBR,LYLTY_CARD_NBR,TXN_ID,PROD_NBR,PROD_QTY) 
 ```
 
 
 Deleting rows :
 ```{r}
-customers_transaction_dataset2 <- customers_transaction_dataset2[
-                              (customers_transaction_dataset2$PROD_QTY!=200),]
+customers_transaction_dataset02 <- customers_transaction_dataset02[
+                              (customers_transaction_dataset02$PROD_QTY!=200),]
 ```
 
 
 Removing duplicate rows in data frame:
 ```{r}
-customers_transaction_dataset2 <- distinct(customers_transaction_dataset2)
+customers_transaction_dataset02 <- distinct(customers_transaction_dataset02)
 ```
 
 
@@ -441,7 +441,7 @@ customers_purchase_dataset <- customers_purchase_dataset %>%
 Merge keep all rows from both data frames:
  
 ```{r}
-customers_dataset_merge <- merge(x=customers_transaction_dataset2,
+customers_dataset_merge <- merge(x=customers_transaction_dataset02,
                                 y=customers_purchase_dataset,
                                 by="LYLTY_CARD_NBR",
                                 all=TRUE)
@@ -471,9 +471,12 @@ customers_dataset_merge$PREMIUM_CUSTOMER <- as.factor(customers_dataset_merge$PR
 ```
 
 
+
 ```{r}
-ggplot(data = customers_dataset_merge)+ 
-  geom_bar(mapping = aes(x = PREMIUM_CUSTOMER, fill = PREMIUM_CUSTOMER))
+ggplot(data = customers_dataset_merge)+
+  geom_bar(mapping = aes(x=LIFESTAGE, fill=PREMIUM_CUSTOMER)) +
+  theme(legend.position = 'top')+
+  coord_flip()
 ```
 
 
@@ -486,8 +489,9 @@ sort(unique(customers_dataset_merge$TOT_SALES))
 
 ```{r}
 ggplot(customers_dataset_merge, 
-       aes(PROD_QTY, TOT_SALES, col=PREMIUM_CUSTOMER)) + 
-        geom_point() + 
+       aes(PROD_QTY, TOT_SALES)) + 
+        geom_point()+
+        geom_quantile() + 
         ggtitle(" Product Quantity vs Total Sales")+
         scale_x_discrete("PROD_QTY")+
         scale_y_continuous("TOT_SALES")
@@ -495,22 +499,9 @@ ggplot(customers_dataset_merge,
 
 
 ```{r}
-ggplot(customers_dataset_merge, aes(PREMIUM_CUSTOMER, TOT_SALES, fill=PREMIUM_CUSTOMER)) + 
-  geom_boxplot()
-```
-
-
-
-Numeric and categorical variables in the same plot:
-```{r pressure, echo=FALSE}
-ggparcoord(data = customers_dataset_merge,
-           columns = c(4,10,9,11),
-           alphaLines = 0.2,
-           scale = "center",
-           groupColumn ="PREMIUM_CUSTOMER", 
-           showPoints = TRUE,
-           title = "Parallel Coordinate Plot for Customers Dataset")+
-           scale_color_brewer(palette = "Set1")
+ggplot(customers_dataset_merge, aes(PREMIUM_CUSTOMER,
+                                    TOT_SALES)) + 
+                                    geom_boxplot()
 ```
 
 
